@@ -1,7 +1,9 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import swaggerUi from "swagger-ui-express";
 import connectDB from "./config/database.js";
+import openapiSpec from "./docs/openapi.js";
 
 // Routes
 import authRoutes from "./routes/authRoutes.js";
@@ -31,6 +33,14 @@ app.use(express.urlencoded({ extended: true }));
 
 // Connect to database
 connectDB();
+
+// API documentation (Swagger UI at /api/docs, raw spec at /api/docs.json)
+app.get("/api/docs.json", (req, res) => res.json(openapiSpec));
+app.use(
+  "/api/docs",
+  swaggerUi.serve,
+  swaggerUi.setup(openapiSpec, { customSiteTitle: "HRMS API Docs" }),
+);
 
 // Routes
 app.use("/api/auth", authRoutes);

@@ -1,6 +1,7 @@
 import User from "../models/User.js";
 import Employee from "../models/Employee.js";
 import { generateToken } from "../utils/generateToken.js";
+import { sendError } from "../utils/errorResponse.js";
 
 export const login = async (req, res) => {
   try {
@@ -49,10 +50,7 @@ export const login = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Login error:", error);
-    res
-      .status(500)
-      .json({ message: error.message || "Server error during login" });
+    sendError(res, error);
   }
 };
 
@@ -74,6 +72,6 @@ export const getMe = async (req, res) => {
       },
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 };

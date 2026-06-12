@@ -21,7 +21,10 @@ const employeeSchema = z.object({
   dateOfJoining: z.string().min(1, 'Date of joining is required'),
   department: z.string().min(1, 'Department is required'),
   position: z.string().min(1, 'Position is required'),
-  basicSalary: z.string().min(1, 'Basic salary is required'),
+  basicSalary: z
+    .string()
+    .min(1, 'Basic salary is required')
+    .refine((v) => Number(v) > 0, 'Basic salary must be a positive number'),
   hra: z.string().optional(),
   allowances: z.string().optional(),
   deductions: z.string().optional(),

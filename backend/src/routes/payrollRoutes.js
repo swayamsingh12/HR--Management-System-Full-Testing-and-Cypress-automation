@@ -13,7 +13,7 @@ router.use(protect);
 
 router.post('/generate', authorize('admin', 'hr'), generatePayroll);
 router.get('/me', getMyPayrolls);
-router.get('/', authorize('admin', 'hr'), getAllPayrolls);
+router.get('/', getAllPayrolls);
 router.get('/:id/payslip', downloadPayslip);
 
 export default router;

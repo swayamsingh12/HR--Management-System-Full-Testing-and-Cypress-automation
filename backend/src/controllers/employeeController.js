@@ -3,6 +3,7 @@ import User from "../models/User.js";
 import LeaveBalance from "../models/LeaveBalance.js";
 import { generateEmployeeId } from "../utils/generateEmployeeId.js";
 import { generateToken } from "../utils/generateToken.js";
+import { sendError } from "../utils/errorResponse.js";
 
 export const createEmployee = async (req, res) => {
   try {
@@ -41,6 +42,7 @@ export const createEmployee = async (req, res) => {
       department,
       position,
       salary: salary || { basic: 0, hra: 0, allowances: 0, deductions: 0 },
+      salaryAtJoining: salary || { basic: 0, hra: 0, allowances: 0, deductions: 0 },
       address,
       emergencyContact,
     });
@@ -72,7 +74,7 @@ export const createEmployee = async (req, res) => {
       },
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 };
 
@@ -95,7 +97,7 @@ export const getEmployees = async (req, res) => {
     const employees = await Employee.find(query).sort({ createdAt: -1 });
     res.json(employees);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 };
 
@@ -132,7 +134,7 @@ export const getEmployee = async (req, res) => {
 
     res.json(employee);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 };
 
@@ -179,7 +181,7 @@ export const updateEmployee = async (req, res) => {
 
     res.json(updatedEmployee);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 };
 
@@ -223,7 +225,7 @@ export const updateEmployeeStatus = async (req, res) => {
 
     res.json({ message: "Employee status updated", employee });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 };
 
@@ -256,7 +258,7 @@ export const deleteEmployee = async (req, res) => {
 
     res.json({ message: "Employee deleted successfully" });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 };
 
@@ -307,6 +309,6 @@ export const setSalary = async (req, res) => {
 
     res.json({ message: "Salary updated successfully", employee });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 };

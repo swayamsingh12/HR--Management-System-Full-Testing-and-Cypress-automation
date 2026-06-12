@@ -23,11 +23,15 @@ export const adminEmployeesApi = {
     return response.data;
   },
   activate: async (id: string) => {
-    const response = await api.patch(`/admin/employees/${id}/activate`, {});
+    const response = await api.patch(`/admin/employees/${id}/activate`, {
+      isActive: true,
+    });
     return response.data;
   },
   deactivate: async (id: string) => {
-    const response = await api.patch(`/admin/employees/${id}/deactivate`, {});
+    const response = await api.patch(`/admin/employees/${id}/deactivate`, {
+      isActive: false,
+    });
     return response.data;
   },
   setSalary: async (id: string, salary: any) => {

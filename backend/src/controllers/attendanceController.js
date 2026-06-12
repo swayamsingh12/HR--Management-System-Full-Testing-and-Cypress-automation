@@ -1,5 +1,6 @@
 import Attendance from "../models/Attendance.js";
 import Employee from "../models/Employee.js";
+import { sendError } from "../utils/errorResponse.js";
 
 export const punchIn = async (req, res) => {
   try {
@@ -40,13 +41,13 @@ export const punchIn = async (req, res) => {
           time: new Date(),
           location: req.body.location || "Office",
         },
-        status: "present",
+        status: "incomplete",
       });
     }
 
     res.json({ message: "Punched in successfully", attendance });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 };
 
@@ -92,18 +93,20 @@ export const punchOut = async (req, res) => {
       return res.status(400).json({ message: "Invalid attendance record" });
     }
 
-    attendance.punchOut = {
-      time: new Date(),
-      location: req.body.location || "Office",
-    };
+    const updated = await Attendance.findByIdAndUpdate(
+      attendance._id,
+      {
+        punchOut: {
+          time: new Date(),
+          location: req.body.location || "Office",
+        },
+      },
+      { new: true },
+    );
 
-    // Save to trigger pre-save hook for working hours calculation
-    await attendance.save();
-
-    res.json({ message: "Punched out successfully", attendance });
+    res.json({ message: "Punched out successfully", attendance: updated });
   } catch (error) {
-    console.error("Punch out error:", error);
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 };
 
@@ -163,13 +166,13 @@ export const punchInForEmployee = async (req, res) => {
           time: new Date(),
           location: req.body.location || "Office",
         },
-        status: "present",
+        status: "incomplete",
       });
     }
 
     res.json({ message: "Punched in successfully for employee", attendance });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 };
 
@@ -244,8 +247,7 @@ export const punchOutForEmployee = async (req, res) => {
 
     res.json({ message: "Punched out successfully for employee", attendance });
   } catch (error) {
-    console.error("Punch out error:", error);
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 };
 
@@ -286,7 +288,7 @@ export const getMyAttendance = async (req, res) => {
       todayStatus: todayAttendance || { status: "absent" },
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 };
 
@@ -328,7 +330,7 @@ export const getEmployeeAttendance = async (req, res) => {
 
     res.json(attendance);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 };
 
@@ -348,7 +350,7 @@ export const regularizeAttendance = async (req, res) => {
 
     res.json({ message: "Attendance regularized successfully", attendance });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 };
 export const getAllAttendance = async (req, res) => {
@@ -388,6 +390,6 @@ export const getAllAttendance = async (req, res) => {
 
     res.json(attendance);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 };

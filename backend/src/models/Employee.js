@@ -47,6 +47,12 @@ const employeeSchema = new mongoose.Schema({
     allowances: { type: Number, default: 0 },
     deductions: { type: Number, default: 0 }
   },
+  salaryAtJoining: {
+    basic: { type: Number, default: 0 },
+    hra: { type: Number, default: 0 },
+    allowances: { type: Number, default: 0 },
+    deductions: { type: Number, default: 0 }
+  },
   address: {
     street: String,
     city: String,

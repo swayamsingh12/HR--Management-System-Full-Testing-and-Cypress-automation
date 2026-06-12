@@ -1,6 +1,7 @@
 import Leave from "../models/Leave.js";
 import LeaveBalance from "../models/LeaveBalance.js";
 import Employee from "../models/Employee.js";
+import { sendError } from "../utils/errorResponse.js";
 
 const calculateDays = (startDate, endDate) => {
   const start = new Date(startDate);
@@ -46,7 +47,7 @@ export const applyLeave = async (req, res) => {
 
     res.status(201).json({ message: "Leave applied successfully", leave });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 };
 
@@ -62,7 +63,7 @@ export const getMyLeaves = async (req, res) => {
 
     res.json(leaves);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 };
 
@@ -74,7 +75,7 @@ export const getPendingLeaves = async (req, res) => {
 
     res.json(leaves);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 };
 
@@ -113,7 +114,7 @@ export const updateLeaveStatus = async (req, res) => {
 
     res.json({ message: `Leave ${status} successfully`, leave });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 };
 
@@ -138,7 +139,7 @@ export const getMyLeaveBalance = async (req, res) => {
 
     res.json(leaveBalance);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 };
 
@@ -160,6 +161,6 @@ export const getAllLeaves = async (req, res) => {
 
     res.json(leaves);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 };

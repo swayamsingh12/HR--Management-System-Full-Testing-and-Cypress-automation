@@ -1,0 +1,48 @@
+{
+  "_note": "Mongo _ids are NOT stored here because they change on every `npm run seed`. Resolve them at runtime with cy.getEmployeeObjectId('EMP001').",
+  "apiUrl": "http://localhost:5000/api",
+  "frontendUrl": "http://localhost:3000",
+
+  "credentials": {
+    "admin": { "email": "admin@hrms.com", "password": "password123" },
+    "hr": { "email": "hr@hrms.com", "password": "password123" },
+    "emp001": { "code": "EMP001", "email": "asha@hrms.com", "password": "EMP001@123", "name": "Asha Verma" },
+    "emp002": { "code": "EMP002", "email": "rohan@hrms.com", "password": "EMP002@123", "name": "Rohan Mehta" }
+  },
+
+  "newEmployee": {
+    "firstName": "TestCypress",
+    "lastName": "Worker",
+    "email": "cypresstest@hrms.com",
+    "phone": "9876543210",
+    "department": "Engineering",
+    "position": "QA Engineer",
+    "dateOfBirth": "1995-01-15",
+    "dateOfJoining": "2024-01-01",
+    "basicSalary": "30000"
+  },
+
+  "emp001Salary": {
+    "basic": 50000,
+    "hra": 20000,
+    "allowances": 10000,
+    "gross": 80000,
+    "tax": 8000,
+    "pf": 6000,
+    "totalDeductions": 14000
+  },
+
+  "emp001June2026": {
+    "month": 6,
+    "year": 2026,
+    "workingDays": 22,
+    "presentDays": 28,
+    "netSalary": 84000
+  },
+
+  "salaryUpdate": {
+    "basic": 90000,
+    "hra": 10000,
+    "allowances": 5000
+  }
+}

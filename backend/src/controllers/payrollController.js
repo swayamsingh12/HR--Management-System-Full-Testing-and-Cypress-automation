@@ -3,6 +3,7 @@ import Employee from '../models/Employee.js';
 import Attendance from '../models/Attendance.js';
 import Leave from '../models/Leave.js';
 import PDFDocument from 'pdfkit';
+import { sendError } from '../utils/errorResponse.js';
 
 const calculateSalary = (salary, workingDays, presentDays) => {
   const basic = salary.basic || 0;
@@ -42,6 +43,9 @@ export const generatePayroll = async (req, res) => {
       return res.status(400).json({ message: 'Please provide employeeId, month, and year' });
     }
 
+    // Give recent attendance writes a moment to settle before reading them
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+
     // Check if payroll already exists
     const existingPayroll = await Payroll.findOne({ employee: employeeId, month, year });
     if (existingPayroll) {
@@ -53,9 +57,15 @@ export const generatePayroll = async (req, res) => {
       return res.status(404).json({ message: 'Employee not found' });
     }
 
-    // Calculate working days in month
+    // Calculate working days in month (exclude weekends)
     const daysInMonth = new Date(year, month, 0).getDate();
-    const workingDays = daysInMonth; // Simplified - can exclude weekends/holidays
+    let workingDays = 0;
+    for (let day = 1; day <= daysInMonth; day++) {
+      const weekday = new Date(year, month - 1, day).getDay();
+      if (weekday !== 0 && weekday !== 6) {
+        workingDays++;
+      }
+    }
 
     // Get attendance for the month
     const startDate = new Date(year, month - 1, 1);
@@ -84,7 +94,7 @@ export const generatePayroll = async (req, res) => {
       leaveDays += Math.ceil((leaveEnd - leaveStart) / (1000 * 60 * 60 * 24)) + 1;
     });
 
-    const salaryDetails = calculateSalary(employee.salary, workingDays, presentDays);
+    const salaryDetails = calculateSalary(employee.salaryAtJoining || employee.salary, workingDays, presentDays);
 
     const payroll = await Payroll.create({
       employee: employeeId,
@@ -109,7 +119,7 @@ export const generatePayroll = async (req, res) => {
 
     res.status(201).json({ message: 'Payroll generated successfully', payroll: populatedPayroll });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 };
 
@@ -124,7 +134,7 @@ export const getMyPayrolls = async (req, res) => {
 
     res.json(payrolls);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 };
 
@@ -143,7 +153,7 @@ export const getAllPayrolls = async (req, res) => {
 
     res.json(payrolls);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 };
 
@@ -207,7 +217,7 @@ export const downloadPayslip = async (req, res) => {
 
     doc.end();
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 };
 

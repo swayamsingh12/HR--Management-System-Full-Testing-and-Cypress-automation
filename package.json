@@ -1,0 +1,25 @@
+{
+  "name": "hrms-fullstack-mern",
+  "version": "1.0.0",
+  "description": "HRMS (MERN) - QA practice application",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently -n backend,frontend -c blue,green \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "npm --prefix backend run dev",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "start:backend": "npm --prefix backend start",
+    "build:frontend": "npm --prefix frontend run build",
+    "seed": "npm --prefix backend run seed",
+    "install:all": "npm install && npm --prefix backend install && npm --prefix frontend install",
+    "cypress:open": "cypress open",
+    "cypress:run": "cypress run --headless",
+    "ci:api": "newman run api-tests/hrms-api-tests.postman_collection.json",
+    "ci:e2e": "cypress run --headless",
+    "ci:smoke": "node scripts/smoke-test.js",
+    "test:all": "npm run ci:api && npm run ci:e2e"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "cypress": "^15.17.0"
+  }
+}

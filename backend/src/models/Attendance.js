@@ -21,7 +21,7 @@ const attendanceSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['present', 'absent', 'late', 'half-day'],
+    enum: ['present', 'absent', 'late', 'half-day', 'incomplete'],
     default: 'absent'
   },
   workingHours: {
@@ -41,7 +41,7 @@ const attendanceSchema = new mongoose.Schema({
 attendanceSchema.index({ employee: 1, date: 1 }, { unique: true });
 
 attendanceSchema.pre('save', function(next) {
-  if (this.punchIn && this.punchOut) {
+  if (this.punchIn?.time && this.punchOut?.time) {
     const hours = (this.punchOut.time - this.punchIn.time) / (1000 * 60 * 60);
     this.workingHours = Math.round(hours * 100) / 100;
     

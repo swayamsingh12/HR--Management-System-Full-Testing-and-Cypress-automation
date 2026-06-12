@@ -95,55 +95,86 @@ A complete, production-ready HRMS system built with MERN stack (MongoDB, Express
 
 ### Prerequisites
 - Node.js (v18 or higher)
-- MongoDB (local or MongoDB Atlas)
-- npm or yarn
+- MongoDB (local instance or a MongoDB Atlas cluster)
+- npm
 
-### Backend Setup
+### 1. Configure environment variables
 
-1. Navigate to backend directory:
+Copy the example env files and fill in your own values:
+
 ```bash
-cd backend
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env
 ```
 
-2. Install dependencies:
+At minimum set `MONGODB_URI` and `JWT_SECRET` in `backend/.env`.
+All available variables are documented inside the `.env.example` files.
+
+### 2. Install dependencies
+
+From the project root, install root, backend, and frontend dependencies in one step:
+
 ```bash
-npm install
+npm install            # installs the root dev tooling (concurrently)
+npm run install:all    # installs root + backend + frontend dependencies
 ```
 
-3. Create `.env` file:
-```env
-PORT=5000
-MONGODB_URI=mongodb://localhost:27017/hrms
-JWT_SECRET=your_super_secret_jwt_key_change_in_production
-JWT_EXPIRE=7d
-NODE_ENV=development
-```
+(Or install manually: `npm install` in each of `backend/` and `frontend/`.)
 
-4. Start the server:
+### 3. Seed the database (optional but recommended)
+
+This creates demo accounts and sample attendance so you can exercise the app right away.
+**Warning:** the seed script clears the HRMS collections in the configured database.
+
 ```bash
-npm run dev
+npm run seed
 ```
 
-The backend will run on `http://localhost:5000`
+### 4. Run the app
 
-### Frontend Setup
+Start the backend and frontend together with a single command from the project root:
 
-1. Navigate to frontend directory:
-```bash
-cd frontend
-```
-
-2. Install dependencies:
-```bash
-npm install
-```
-
-3. Start the development server:
 ```bash
 npm run dev
 ```
 
-The frontend will run on `http://localhost:3000`
+- Backend API: `http://localhost:5000`
+- Frontend:    `http://localhost:3000`
+
+You can also run them individually:
+
+```bash
+npm run dev:backend    # backend only (nodemon)
+npm run dev:frontend   # frontend only (Vite)
+```
+
+## API Documentation (Swagger)
+
+Interactive OpenAPI docs are served by the backend:
+
+- **Swagger UI:** http://localhost:5000/api/docs
+- **Raw OpenAPI JSON:** http://localhost:5000/api/docs.json
+
+To try protected endpoints: open `/api/docs`, call `POST /auth/login`, copy the
+`token`, click **Authorize** (top right), paste the token, then execute any request.
+
+## Postman
+
+A ready-to-run collection and environment live in [`postman/`](postman/):
+
+- `postman/HRMS.postman_collection.json`
+- `postman/HRMS.postman_environment.json`
+
+Usage:
+1. In Postman, **Import** both files.
+2. Select the **HRMS Local** environment (sets `baseUrl`).
+3. Run the **Auth & Setup** folder first (or use the **Collection Runner** on the
+   whole collection). The login requests capture JWT tokens and the
+   "Setup - Capture Employee IDs" request stores `emp001Id` / `emp002Id` into
+   collection variables that the other requests reuse — no manual token copying.
+
+Every request has test assertions (status code + basic schema). Requires the
+backend running and the database seeded (`npm run seed`).
 
 ## API Endpoints
 
@@ -180,8 +211,21 @@ The frontend will run on `http://localhost:3000`
 
 ## Default Credentials
 
-After setting up, you'll need to create users. You can create an admin user manually in MongoDB or use the employee creation API to create employees (which auto-creates user accounts).
+After running `npm run seed`, the following accounts are available:
 
+| Role     | Email            | Password      | Notes |
+|----------|------------------|---------------|-------|
+| Admin    | admin@hrms.com   | password123   | full access |
+| HR       | hr@hrms.com      | password123   | manage employees/attendance/leave/payroll |
+| Employee | asha@hrms.com    | EMP001@123    | attendance incl. weekends |
+| Employee | rohan@hrms.com   | EMP002@123    | weekday attendance, today open (testable Punch In) |
+| Employee | priya@hrms.com   | EMP003@123    | weekday attendance, pending leave |
+| Employee | vikram@hrms.com  | EMP004@123    | partial attendance, pending leave |
+| Employee | sneha@hrms.com   | EMP005@123    | **inactive** (login disabled) |
+| Employee | arjun@hrms.com   | EMP006@123    | attendance incl. weekends |
+| Employee | meera@hrms.com   | EMP007@123    | weekday attendance |
+
+New employees created through the app get an auto-generated login.
 Default password format for new employees: `{employeeId}@123`
 
 ## Features Highlights

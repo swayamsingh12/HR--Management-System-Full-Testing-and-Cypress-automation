@@ -1,0 +1,589 @@
+{
+  "info": {
+    "name": "HRMS API",
+    "_postman_id": "b2a1f7e0-0000-4a00-9000-hrms00000001",
+    "description": "HRMS MERN API collection. Run requests top-to-bottom (or use the Collection Runner). The Auth folder captures JWT tokens and EMP001/EMP002 ids into collection variables that later requests reuse. Select the 'HRMS Local' environment for baseUrl.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000/api" },
+    { "key": "adminToken", "value": "" },
+    { "key": "hrToken", "value": "" },
+    { "key": "employeeToken", "value": "" },
+    { "key": "emp001Id", "value": "" },
+    { "key": "emp002Id", "value": "" },
+    { "key": "lastPayrollId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Auth & Setup",
+      "item": [
+        {
+          "name": "Login - Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test('has token', () => pm.expect(b.token).to.be.a('string').and.not.empty);",
+                  "pm.collectionVariables.set('adminToken', b.token);",
+                  "console.log('adminToken saved');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"admin@hrms.com\",\n  \"password\": \"password123\"\n}" },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          }
+        },
+        {
+          "name": "Login - HR",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.collectionVariables.set('hrToken', b.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"hr@hrms.com\",\n  \"password\": \"password123\"\n}" },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          }
+        },
+        {
+          "name": "Login - Employee (asha)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test('role is employee', () => pm.expect(b.user.role).to.eql('employee'));",
+                  "pm.collectionVariables.set('employeeToken', b.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"asha@hrms.com\",\n  \"password\": \"EMP001@123\"\n}" },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          }
+        },
+        {
+          "name": "Get Current User (/auth/me)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('returns a user', () => pm.expect(pm.response.json().user).to.be.an('object'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/auth/me", "host": ["{{baseUrl}}"], "path": ["auth", "me"] }
+          }
+        },
+        {
+          "name": "Setup - Capture Employee IDs",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "const list = pm.response.json();",
+                  "const e1 = list.find(e => e.employeeId === 'EMP001');",
+                  "const e2 = list.find(e => e.employeeId === 'EMP002');",
+                  "pm.test('EMP001 exists (run npm run seed)', () => pm.expect(e1).to.exist);",
+                  "if (e1) pm.collectionVariables.set('emp001Id', e1._id);",
+                  "if (e2) pm.collectionVariables.set('emp002Id', e2._id);",
+                  "console.log('emp001Id =', e1 && e1._id, '| emp002Id =', e2 && e2._id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/employees", "host": ["{{baseUrl}}"], "path": ["employees"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Employees",
+      "item": [
+        {
+          "name": "List Employees",
+          "event": [
+            {
+              "listen": "test",
+              "script": { "type": "text/javascript", "exec": [
+                "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                "pm.test('returns an array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+              ] }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/employees", "host": ["{{baseUrl}}"], "path": ["employees"] }
+          }
+        },
+        {
+          "name": "Create Employee",
+          "event": [
+            {
+              "listen": "test",
+              "script": { "type": "text/javascript", "exec": [
+                "pm.test('status is 201', () => pm.response.to.have.status(201));",
+                "const b = pm.response.json();",
+                "pm.test('returns employee + credentials', () => { pm.expect(b.employee).to.be.an('object'); pm.expect(b.credentials).to.be.an('object'); });"
+              ] }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"firstName\": \"Postman\",\n  \"lastName\": \"Tester\",\n  \"email\": \"postman_{{$timestamp}}@hrms.com\",\n  \"phone\": \"9876543210\",\n  \"dateOfBirth\": \"1995-01-15\",\n  \"dateOfJoining\": \"2024-01-01\",\n  \"department\": \"Engineering\",\n  \"position\": \"QA Engineer\",\n  \"salary\": { \"basic\": 30000, \"hra\": 12000, \"allowances\": 6000, \"deductions\": 0 }\n}" },
+            "url": { "raw": "{{baseUrl}}/employees", "host": ["{{baseUrl}}"], "path": ["employees"] }
+          }
+        },
+        {
+          "name": "Get Employee by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": { "type": "text/javascript", "exec": [
+                "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                "const b = pm.response.json();",
+                "pm.test('has core fields', () => { pm.expect(b).to.have.property('firstName'); pm.expect(b).to.have.property('email'); });"
+              ] }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/employees/{{emp001Id}}", "host": ["{{baseUrl}}"], "path": ["employees", "{{emp001Id}}"] }
+          }
+        },
+        {
+          "name": "Update Employee",
+          "event": [
+            {
+              "listen": "test",
+              "script": { "type": "text/javascript", "exec": [
+                "pm.test('status is 200', () => pm.response.to.have.status(200));"
+              ] }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"phone\": \"9000000000\"\n}" },
+            "url": { "raw": "{{baseUrl}}/employees/{{emp001Id}}", "host": ["{{baseUrl}}"], "path": ["employees", "{{emp001Id}}"] }
+          }
+        },
+        {
+          "name": "Update Employee Status (reactivate)",
+          "event": [
+            {
+              "listen": "test",
+              "script": { "type": "text/javascript", "exec": [
+                "pm.test('status is 200', () => pm.response.to.have.status(200));"
+              ] }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"isActive\": true\n}" },
+            "url": { "raw": "{{baseUrl}}/employees/{{emp001Id}}/status", "host": ["{{baseUrl}}"], "path": ["employees", "{{emp001Id}}", "status"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Attendance",
+      "item": [
+        {
+          "name": "Punch In (employee)",
+          "event": [
+            {
+              "listen": "test",
+              "script": { "type": "text/javascript", "exec": [
+                "pm.test('200 or 400 (already punched in)', () => pm.expect([200,400]).to.include(pm.response.code));",
+                "console.log(pm.response.json().message);"
+              ] }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{employeeToken}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"location\": \"Office\"\n}" },
+            "url": { "raw": "{{baseUrl}}/attendance/punch-in", "host": ["{{baseUrl}}"], "path": ["attendance", "punch-in"] }
+          }
+        },
+        {
+          "name": "Punch Out (employee)",
+          "event": [
+            {
+              "listen": "test",
+              "script": { "type": "text/javascript", "exec": [
+                "pm.test('200 or 400', () => pm.expect([200,400]).to.include(pm.response.code));",
+                "console.log(pm.response.json().message);"
+              ] }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{employeeToken}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"location\": \"Office\"\n}" },
+            "url": { "raw": "{{baseUrl}}/attendance/punch-out", "host": ["{{baseUrl}}"], "path": ["attendance", "punch-out"] }
+          }
+        },
+        {
+          "name": "My Attendance (employee)",
+          "event": [
+            {
+              "listen": "test",
+              "script": { "type": "text/javascript", "exec": [
+                "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                "pm.test('has attendance array', () => pm.expect(pm.response.json().attendance).to.be.an('array'));"
+              ] }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{employeeToken}}", "type": "string" }] },
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/attendance/me", "host": ["{{baseUrl}}"], "path": ["attendance", "me"] }
+          }
+        },
+        {
+          "name": "Get Employee Attendance (HR/Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": { "type": "text/javascript", "exec": [
+                "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                "pm.test('returns an array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+              ] }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/attendance/employee/{{emp001Id}}", "host": ["{{baseUrl}}"], "path": ["attendance", "employee", "{{emp001Id}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Leaves",
+      "item": [
+        {
+          "name": "Apply Leave (employee)",
+          "event": [
+            {
+              "listen": "test",
+              "script": { "type": "text/javascript", "exec": [
+                "pm.test('201 or 400 (balance)', () => pm.expect([201,400]).to.include(pm.response.code));",
+                "console.log(pm.response.json().message);"
+              ] }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{employeeToken}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"leaveType\": \"casual\",\n  \"startDate\": \"2026-06-20\",\n  \"endDate\": \"2026-06-21\",\n  \"reason\": \"Family function out of town\"\n}" },
+            "url": { "raw": "{{baseUrl}}/leaves", "host": ["{{baseUrl}}"], "path": ["leaves"] }
+          }
+        },
+        {
+          "name": "My Leaves (employee)",
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [
+              "pm.test('status is 200', () => pm.response.to.have.status(200));",
+              "pm.test('returns an array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+            ] } }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{employeeToken}}", "type": "string" }] },
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/leaves/me", "host": ["{{baseUrl}}"], "path": ["leaves", "me"] }
+          }
+        },
+        {
+          "name": "Leave Balance (employee)",
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [
+              "pm.test('status is 200', () => pm.response.to.have.status(200));",
+              "pm.test('has annual bucket', () => pm.expect(pm.response.json().annual).to.be.an('object'));"
+            ] } }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{employeeToken}}", "type": "string" }] },
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/leaves/balance/me", "host": ["{{baseUrl}}"], "path": ["leaves", "balance", "me"] }
+          }
+        },
+        {
+          "name": "Pending Leaves (HR/Admin)",
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [
+              "pm.test('status is 200', () => pm.response.to.have.status(200));",
+              "pm.test('returns an array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+            ] } }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{hrToken}}", "type": "string" }] },
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/leaves/pending", "host": ["{{baseUrl}}"], "path": ["leaves", "pending"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Payroll",
+      "item": [
+        {
+          "name": "Generate Payroll (HR/Admin)",
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [
+              "pm.test('201 created or 400 already-generated', () => pm.expect([201,400]).to.include(pm.response.code));",
+              "const b = pm.response.json();",
+              "if (pm.response.code === 201) { pm.collectionVariables.set('lastPayrollId', b.payroll._id); pm.test('gross = basic+hra+allowances', () => pm.expect(b.payroll.salary.gross).to.eql(b.payroll.salary.basic + b.payroll.salary.hra + b.payroll.salary.allowances)); }",
+              "console.log('status', pm.response.code, b.message || '');"
+            ] } }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"employeeId\": \"{{emp001Id}}\",\n  \"month\": 7,\n  \"year\": 2026\n}" },
+            "url": { "raw": "{{baseUrl}}/payroll/generate", "host": ["{{baseUrl}}"], "path": ["payroll", "generate"] }
+          }
+        },
+        {
+          "name": "My Payrolls (employee)",
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [
+              "pm.test('status is 200', () => pm.response.to.have.status(200));",
+              "pm.test('returns an array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+            ] } }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{employeeToken}}", "type": "string" }] },
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/payroll/me", "host": ["{{baseUrl}}"], "path": ["payroll", "me"] }
+          }
+        },
+        {
+          "name": "All Payrolls (HR/Admin)",
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [
+              "pm.test('status is 200', () => pm.response.to.have.status(200));",
+              "const list = pm.response.json();",
+              "pm.test('returns an array', () => pm.expect(list).to.be.an('array'));",
+              "if (Array.isArray(list) && list.length) pm.collectionVariables.set('lastPayrollId', list[0]._id);"
+            ] } }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/payroll", "host": ["{{baseUrl}}"], "path": ["payroll"] }
+          }
+        },
+        {
+          "name": "Download Payslip PDF",
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [
+              "pm.test('status is 200', () => pm.response.to.have.status(200));",
+              "pm.test('content-type is PDF', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/pdf'));"
+            ] } }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/payroll/{{lastPayrollId}}/payslip", "host": ["{{baseUrl}}"], "path": ["payroll", "{{lastPayrollId}}", "payslip"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "item": [
+        {
+          "name": "Set Salary",
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [
+              "pm.test('status is 200', () => pm.response.to.have.status(200));",
+              "pm.test('salary saved', () => pm.expect(pm.response.json().employee.salary.basic).to.eql(55000));"
+            ] } }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"basic\": 55000,\n  \"hra\": 22000,\n  \"allowances\": 11000,\n  \"deductions\": 0\n}" },
+            "url": { "raw": "{{baseUrl}}/admin/employees/{{emp001Id}}/salary", "host": ["{{baseUrl}}"], "path": ["admin", "employees", "{{emp001Id}}", "salary"] }
+          }
+        },
+        {
+          "name": "Deactivate Employee",
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [
+              "pm.test('status is 200', () => pm.response.to.have.status(200));"
+            ] } }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"isActive\": false\n}" },
+            "url": { "raw": "{{baseUrl}}/admin/employees/{{emp002Id}}/deactivate", "host": ["{{baseUrl}}"], "path": ["admin", "employees", "{{emp002Id}}", "deactivate"] }
+          }
+        },
+        {
+          "name": "Activate Employee",
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [
+              "pm.test('status is 200', () => pm.response.to.have.status(200));"
+            ] } }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"isActive\": true\n}" },
+            "url": { "raw": "{{baseUrl}}/admin/employees/{{emp002Id}}/activate", "host": ["{{baseUrl}}"], "path": ["admin", "employees", "{{emp002Id}}", "activate"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Negative / Validation",
+      "item": [
+        {
+          "name": "Login - missing email (400)",
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [
+              "pm.test('status is 400', () => pm.response.to.have.status(400));",
+              "pm.test('message mentions provide email', () => pm.expect(pm.response.json().message).to.match(/provide email/i));"
+            ] } }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"password\": \"password123\"\n}" },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          }
+        },
+        {
+          "name": "Login - wrong password (401)",
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [
+              "pm.test('status is 401', () => pm.response.to.have.status(401));",
+              "pm.test('message includes Invalid', () => pm.expect(pm.response.json().message).to.match(/invalid/i));"
+            ] } }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"admin@hrms.com\",\n  \"password\": \"wrong\"\n}" },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          }
+        },
+        {
+          "name": "Generate Payroll - missing fields (400)",
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [
+              "pm.test('status is 400', () => pm.response.to.have.status(400));",
+              "pm.test('message mentions provide', () => pm.expect(pm.response.json().message).to.match(/provide/i));"
+            ] } }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"month\": 6,\n  \"year\": 2026\n}" },
+            "url": { "raw": "{{baseUrl}}/payroll/generate", "host": ["{{baseUrl}}"], "path": ["payroll", "generate"] }
+          }
+        },
+        {
+          "name": "Access payroll without token (401)",
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [
+              "pm.test('status is 401', () => pm.response.to.have.status(401));",
+              "pm.test('message indicates unauthorized', () => pm.expect(pm.response.json().message).to.match(/not authorized|no token/i));"
+            ] } }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/payroll", "host": ["{{baseUrl}}"], "path": ["payroll"] }
+          }
+        },
+        {
+          "name": "Duplicate email rejected (400)",
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [
+              "pm.test('status is 400', () => pm.response.to.have.status(400));",
+              "pm.test('message includes already exists', () => pm.expect(pm.response.json().message).to.match(/already exists/i));"
+            ] } }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"firstName\": \"Dup\",\n  \"lastName\": \"Email\",\n  \"email\": \"asha@hrms.com\",\n  \"phone\": \"9999999999\",\n  \"dateOfBirth\": \"1995-01-01\",\n  \"dateOfJoining\": \"2024-01-01\",\n  \"department\": \"Engineering\",\n  \"position\": \"Developer\",\n  \"salary\": { \"basic\": 10000 }\n}" },
+            "url": { "raw": "{{baseUrl}}/employees", "host": ["{{baseUrl}}"], "path": ["employees"] }
+          }
+        }
+      ]
+    }
+  ]
+}
