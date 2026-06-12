@@ -1,23 +1,7 @@
-/// <reference types="cypress" />
-/**
- * TEST FILE 3 — Salary / Payslip Flow
- * --------------------------------------------------------------------------
- * Verifies the payroll math for EMP001, June 2026:
- *   1. Gross = basic + hra + allowances
- *   2. Tax  = gross x 0.10
- *   3. PF   = basic x 0.12
- *   4. Net salary must NOT exceed gross  -> documents BUG-002 (EXPECTED TO FAIL)
- *   5. Payslip PDF downloads (API)
- *   6. Employee sees their own payslips (UI)
- *
- * The `before` hook makes sure the June 2026 payroll exists (generates it if
- * missing) so the suite works on a freshly seeded database.
- */
-
 describe("03 - Salary / Payslip Flow", () => {
   const apiUrl = Cypress.env("apiUrl");
   let data;
-  let june; // EMP001 June 2026 payroll record
+  let june;
   let emp001Id;
 
   before(() => {
@@ -26,38 +10,37 @@ describe("03 - Salary / Payslip Flow", () => {
     });
     cy.getAdminToken().then((token) => {
       const headers = { Authorization: `Bearer ${token}` };
-      cy.getEmployeeObjectId("EMP001").then((empId) => {
+      const { month, year } = data.automation;
+      cy.getEmployeeObjectId(data.automation.primary.code).then((empId) => {
         emp001Id = empId;
-        // Ensure the June 2026 payroll exists (ignore "already generated").
+
         cy.request({
           method: "POST",
           url: `${apiUrl}/payroll/generate`,
           headers,
           failOnStatusCode: false,
-          body: { employeeId: empId, month: 6, year: 2026 },
+          body: { employeeId: empId, month, year },
         });
         cy.request({
           method: "GET",
-          url: `${apiUrl}/payroll?employeeId=${empId}&month=6&year=2026`,
+          url: `${apiUrl}/payroll?employeeId=${empId}&month=${month}&year=${year}`,
           headers,
         }).then((res) => {
-          expect(res.body.length, "EMP001 June 2026 payroll should exist").to.be.greaterThan(0);
+          expect(res.body.length, "automation employee payroll should exist").to.be.greaterThan(0);
           june = res.body[0];
         });
       });
     });
   });
 
-  // --- Scenario 1 -----------------------------------------------------------
   it("Scenario 1 - Gross salary math is correct", () => {
-    const { basic, hra, allowances } = data.emp001Salary;
+    const { basic, hra, allowances } = data.automation.salary;
     cy.log(`Calculation: ${basic} + ${hra} + ${allowances} = ${basic + hra + allowances}`);
     cy.log(`Actual gross in payroll: ${june.salary.gross}`);
     expect(june.salary.gross, "gross = basic + hra + allowances").to.eq(80000);
     cy.log("PASS: gross salary is 80000");
   });
 
-  // --- Scenario 2 -----------------------------------------------------------
   it("Scenario 2 - Tax calculation is correct", () => {
     cy.log("Calculation: 80000 x 0.10 = 8000");
     cy.log(`Actual tax in payroll: ${june.deductions.tax}`);
@@ -65,7 +48,6 @@ describe("03 - Salary / Payslip Flow", () => {
     cy.log("PASS: tax is 8000");
   });
 
-  // --- Scenario 3 -----------------------------------------------------------
   it("Scenario 3 - PF calculation is correct", () => {
     cy.log("Calculation: 50000 x 0.12 = 6000");
     cy.log(`Actual PF in payroll: ${june.deductions.providentFund}`);
@@ -73,24 +55,19 @@ describe("03 - Salary / Payslip Flow", () => {
     cy.log("PASS: provident fund is 6000");
   });
 
-  // --- Scenario 4 -----------------------------------------------------------
-  // EXPECTED TO FAIL — documents BUG-002.
-  // Weekend attendance is counted into present days while working days only
-  // count weekdays, so the attendance ratio exceeds 1.0 and net > gross.
   it("Scenario 4 - Net salary must not exceed gross (documents BUG-002) [EXPECTED TO FAIL]", () => {
     cy.log(`Working days: ${june.workingDays}`);
     cy.log(`Present days: ${june.presentDays}`);
     cy.log(`Gross: ${june.salary.gross}`);
     cy.log(`Net salary: ${june.netSalary}`);
     cy.log("BUG-002: Net exceeds gross due to weekend attendance");
-    // PASS condition we WANT: net salary is less than gross (84000 < 80000 is false).
+
     expect(
       june.netSalary,
       "BUG-002: net salary must not exceed gross salary",
     ).to.be.lessThan(june.salary.gross);
   });
 
-  // --- Scenario 5 -----------------------------------------------------------
   it("Scenario 5 - Payslip PDF downloads successfully", () => {
     cy.getAdminToken().then((token) => {
       cy.request({
@@ -111,9 +88,8 @@ describe("03 - Salary / Payslip Flow", () => {
     });
   });
 
-  // --- Scenario 6 -----------------------------------------------------------
   it("Scenario 6 - Employee sees own payslips", () => {
-    cy.loginAsEmployee(data.credentials.emp001.email, data.credentials.emp001.password);
+    cy.loginAsEmployee(data.automation.primary.email, data.automation.primary.password);
     cy.visit("/employee/payslips");
     cy.contains("No payslips found").should("not.exist");
     cy.get("table tbody tr", { timeout: 10000 }).its("length").should("be.greaterThan", 0);

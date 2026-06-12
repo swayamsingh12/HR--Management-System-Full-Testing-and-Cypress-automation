@@ -1,19 +1,3 @@
-/**
- * Smoke tests for the HRMS backend.
- *
- * Runs three critical checks and exits with code 0 if all pass, 1 if any fail.
- * This is the HARD pass/fail gate used by CI (it has no continue-on-error),
- * so it must only test things that should ALWAYS work regardless of the known
- * seeded bugs.
- *
- *   Smoke 1 - Backend is alive   : GET  /auth/me (no token) -> expect 401
- *   Smoke 2 - Database connected : POST /auth/login (admin) -> expect 200 + token
- *   Smoke 3 - Payroll responds   : GET  /payroll (admin)    -> expect 200 + array
- *
- * Uses Node 18+ global fetch (no dependencies).
- * Override the target with SMOKE_BASE_URL (default http://localhost:5000/api).
- */
-
 const BASE = process.env.SMOKE_BASE_URL || "http://localhost:5000/api";
 
 const safeFetch = async (url, opts) => {
@@ -24,7 +8,6 @@ const safeFetch = async (url, opts) => {
   }
 };
 
-// Poll until the server responds with any HTTP status (or time out).
 const waitForServer = async (timeoutMs = 30000) => {
   const start = Date.now();
   while (Date.now() - start < timeoutMs) {
@@ -39,7 +22,6 @@ const main = async () => {
   let failures = 0;
   console.log(`Smoke tests against: ${BASE}`);
 
-  // --- Smoke 1 - Backend is alive -----------------------------------------
   console.log("\n[Smoke 1] Backend is alive (GET /auth/me without token -> expect 401)");
   const status1 = await waitForServer(30000);
   if (status1 === null) {
@@ -48,11 +30,10 @@ const main = async () => {
   } else if (status1 === 401) {
     console.log("  PASS: server is up (401 as expected)");
   } else {
-    // It responded, so the server is up; just not the status we expected.
+
     console.log(`  PASS: server is up (responded with ${status1})`);
   }
 
-  // --- Smoke 2 - Database is connected ------------------------------------
   console.log("\n[Smoke 2] Database is connected (POST /auth/login admin -> expect 200 + token)");
   let token = null;
   const res2 = await safeFetch(`${BASE}/auth/login`, {
@@ -74,7 +55,6 @@ const main = async () => {
     }
   }
 
-  // --- Smoke 3 - Payroll endpoint responds --------------------------------
   console.log("\n[Smoke 3] Payroll endpoint responds (GET /payroll with admin token -> expect 200 + array)");
   if (!token) {
     console.log("  FAIL: no admin token from Smoke 2, cannot reach payroll endpoint");

@@ -1,12 +1,13 @@
 const { defineConfig } = require("cypress");
 
 module.exports = defineConfig({
+  projectId: 'noxtvj',
   viewportWidth: 1280,
   viewportHeight: 720,
   defaultCommandTimeout: 10000,
   screenshotOnRunFailure: true,
   video: false,
-  // Backend API base used by cy.request(...) calls.
+
   env: {
     apiUrl: "http://localhost:5000/api",
   },

@@ -43,7 +43,6 @@ export const generatePayroll = async (req, res) => {
       return res.status(400).json({ message: 'Please provide employeeId, month, and year' });
     }
 
-    // Give recent attendance writes a moment to settle before reading them
     await new Promise((resolve) => setTimeout(resolve, 2000));
 
     // Check if payroll already exists
@@ -57,7 +56,6 @@ export const generatePayroll = async (req, res) => {
       return res.status(404).json({ message: 'Employee not found' });
     }
 
-    // Calculate working days in month (exclude weekends)
     const daysInMonth = new Date(year, month, 0).getDate();
     let workingDays = 0;
     for (let day = 1; day <= daysInMonth; day++) {

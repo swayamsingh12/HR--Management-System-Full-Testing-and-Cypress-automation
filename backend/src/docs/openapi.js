@@ -1,8 +1,3 @@
-// OpenAPI 3.0 specification for the HRMS API.
-// Served as interactive docs at GET /api/docs and as raw JSON at GET /api/docs.json
-// (mounted in src/server.js). The base server URL already includes "/api", so
-// the paths below are written relative to it (e.g. "/auth/login").
-
 const bearer = [{ bearerAuth: [] }];
 
 const openapiSpec = {
@@ -237,7 +232,7 @@ const openapiSpec = {
       },
     },
   },
-  // Global security: every operation needs a bearer token unless overridden (login).
+
   security: bearer,
   paths: {
     "/auth/login": {

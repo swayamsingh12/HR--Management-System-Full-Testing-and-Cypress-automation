@@ -34,7 +34,6 @@ app.use(express.urlencoded({ extended: true }));
 // Connect to database
 connectDB();
 
-// API documentation (Swagger UI at /api/docs, raw spec at /api/docs.json)
 app.get("/api/docs.json", (req, res) => res.json(openapiSpec));
 app.use(
   "/api/docs",

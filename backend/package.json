@@ -8,7 +8,8 @@
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "seed": "node seed.js",
-    "add-employees": "node addEmployees.js"
+    "add-employees": "node addEmployees.js",
+    "test:setup": "node setupAutomation.js"
   },
   "keywords": [],
   "author": "",

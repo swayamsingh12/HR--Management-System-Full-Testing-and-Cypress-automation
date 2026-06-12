@@ -1,16 +1,3 @@
-/// <reference types="cypress" />
-/**
- * TEST FILE 4 — Employee Exit
- * --------------------------------------------------------------------------
- * Covers:
- *   1. Admin deactivates an employee (UI)
- *   2. A deactivated employee cannot log in
- *   3. Payroll is blocked for inactive employees -> documents BUG-006 (EXPECTED TO FAIL)
- *   4. An employee cannot list everyone's payroll -> documents BUG-007 (EXPECTED TO FAIL)
- *
- * Target: EMP002 (Rohan Mehta).
- */
-
 describe("04 - Employee Exit", () => {
   const apiUrl = Cypress.env("apiUrl");
   let data;
@@ -25,33 +12,32 @@ describe("04 - Employee Exit", () => {
     cy.getAdminToken().then((token) =>
       cy.request({
         method: "PATCH",
-        url: `${apiUrl}/admin/employees/EMP002/status`,
+        url: `${apiUrl}/admin/employees/${data.automation.exit.code}/status`,
         headers: { Authorization: `Bearer ${token}` },
         body: { isActive },
         failOnStatusCode: false,
       }),
     );
 
-  // --- Scenario 1 -----------------------------------------------------------
   it("Scenario 1 - Admin deactivates an employee", () => {
-    setActive(true); // make sure EMP002 starts active so "Deactivate" is shown
+    const exit = data.automation.exit;
+    setActive(true);
     cy.loginAsAdmin();
     cy.visit("/admin/employees");
 
-    cy.contains("tr", "Rohan").find('button[title="Deactivate"]').click();
+    cy.contains("tr", exit.code).find('button[title="Deactivate"]').click();
 
     cy.contains("Employee deactivated", { timeout: 10000 }).should("be.visible");
-    cy.contains("tr", "Rohan").should("contain", "Inactive");
-    cy.log("PASS: EMP002 (Rohan Mehta) status changed to Inactive");
+    cy.contains("tr", exit.code).should("contain", "Inactive");
+    cy.log(`PASS: ${exit.code} (${exit.name}) status changed to Inactive`);
   });
 
-  // --- Scenario 2 -----------------------------------------------------------
   it("Scenario 2 - Deactivated employee cannot login", () => {
-    setActive(false); // deactivate via API first
+    setActive(false);
 
     cy.visit("/login");
-    cy.get("#email").clear().type(data.credentials.emp002.email);
-    cy.get("#password").clear().type(data.credentials.emp002.password);
+    cy.get("#email").clear().type(data.automation.exit.email);
+    cy.get("#password").clear().type(data.automation.exit.password);
     cy.contains("button", "Login").click();
 
     cy.contains("Account is inactive", { timeout: 10000 }).should("be.visible");
@@ -59,15 +45,11 @@ describe("04 - Employee Exit", () => {
     cy.log("PASS: inactive employee blocked at login, stayed on /login");
   });
 
-  // --- Scenario 3 -----------------------------------------------------------
-  // EXPECTED TO FAIL — documents BUG-006.
-  // Generating payroll for a deactivated employee should be blocked (400) but
-  // the API still returns 201 and creates the record.
   it("Scenario 3 - Payroll blocked for inactive employee (documents BUG-006) [EXPECTED TO FAIL]", () => {
     setActive(false);
     cy.getAdminToken().then((token) => {
       const headers = { Authorization: `Bearer ${token}` };
-      cy.getEmployeeObjectId("EMP002").then((empId) => {
+      cy.getEmployeeObjectId(data.automation.exit.code).then((empId) => {
         cy.request({
           method: "POST",
           url: `${apiUrl}/payroll/generate`,
@@ -78,9 +60,7 @@ describe("04 - Employee Exit", () => {
           cy.log("Expected: 400 blocked");
           cy.log(`Actual: ${res.status} generated`);
           cy.log("BUG-006: Payroll generates for inactive employee");
-          // PASS condition we WANT: the API rejects with 400 + an "inactive" message.
-          // (The message check also keeps this failing on re-runs where a prior
-          //  run already created the record and the API returns "already generated".)
+
           expect(
             res.status,
             "BUG-006: payroll should be blocked (400) for an inactive employee",
@@ -94,13 +74,10 @@ describe("04 - Employee Exit", () => {
     });
   });
 
-  // --- Scenario 4 -----------------------------------------------------------
-  // EXPECTED TO FAIL — documents BUG-007.
-  // An employee token should NOT be able to list all payrolls.
   it("Scenario 4 - Employee cannot see all payrolls (documents BUG-007) [EXPECTED TO FAIL]", () => {
     cy.getEmployeeToken(
-      data.credentials.emp001.email,
-      data.credentials.emp001.password,
+      data.automation.primary.email,
+      data.automation.primary.password,
     ).then((token) => {
       cy.request({
         method: "GET",
@@ -111,7 +88,7 @@ describe("04 - Employee Exit", () => {
         cy.log("Expected: 403 forbidden");
         cy.log(`Actual: ${res.status} with ${Array.isArray(res.body) ? res.body.length : 0} payroll records`);
         cy.log("BUG-007: Employee can see everyone's salary");
-        // PASS condition we WANT: employees are forbidden (403) from the list endpoint.
+
         expect(
           res.status,
           "BUG-007: employees must not be able to list all payrolls (expected 403)",

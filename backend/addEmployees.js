@@ -1,8 +1,3 @@
-// Adds extra employees WITHOUT wiping existing data.
-// Creates Employee + login User + LeaveBalance only — no attendance, no payroll.
-// Safe to re-run: skips any employeeId/email that already exists.
-//
-// Usage: node addEmployees.js   (or: npm run add-employees)
 import mongoose from "mongoose";
 import dotenv from "dotenv";
 import User from "./src/models/User.js";

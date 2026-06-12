@@ -6,16 +6,13 @@ import Attendance from "./src/models/Attendance.js";
 import Payroll from "./src/models/Payroll.js";
 import Leave from "./src/models/Leave.js";
 import LeaveBalance from "./src/models/LeaveBalance.js";
+import { setupAutomationEmployees } from "./setupAutomation.js";
 
 dotenv.config();
 
 await mongoose.connect(process.env.MONGODB_URI);
 console.log("Connected to MongoDB");
 
-// ---------------------------------------------------------------------------
-// Reset the demo data set so seeding is repeatable.
-// WARNING: this clears all HRMS collections in the configured database.
-// ---------------------------------------------------------------------------
 await Payroll.deleteMany({});
 await Leave.deleteMany({});
 await Attendance.deleteMany({});
@@ -23,15 +20,12 @@ await LeaveBalance.deleteMany({});
 await Employee.deleteMany({});
 await User.deleteMany({});
 
-// Drop any indexes left over from older schema versions (the payroll
-// collection previously had a unique compound index).
 try {
   await Payroll.collection.dropIndexes();
 } catch (e) {
-  // Collection may not exist yet on a fresh database — safe to ignore.
+
 }
 
-// ----------------------------- Staff accounts ------------------------------
 await User.create({
   email: "admin@hrms.com",
   password: "password123",
@@ -46,7 +40,6 @@ await User.create({
   isActive: true,
 });
 
-// --------------------------- Employee factory ------------------------------
 const createEmployee = async ({
   employeeId,
   firstName,
@@ -90,13 +83,6 @@ const createEmployee = async ({
   return employee;
 };
 
-// Each entry declares an attendance pattern for the current month:
-//   "weekends" -> present every day incl. Sat/Sun (triggers overpay BUG-2)
-//   "weekdays" -> present Mon-Fri only (normal-ish payroll)
-//   "partial"  -> present only the first ~10 weekdays
-// The two "weekends" employees keep a full month (incl. today) so BUG-2 stays
-// reproducible; everyone else has today left open so the Punch In button is
-// testable.
 const employeeConfigs = [
   { employeeId: "EMP001", firstName: "Asha",   lastName: "Verma",  email: "asha@hrms.com",   department: "Engineering", position: "Software Developer", salary: { basic: 50000, hra: 20000, allowances: 10000, deductions: 0 }, attendance: "weekends" },
   { employeeId: "EMP002", firstName: "Rohan",  lastName: "Mehta",  email: "rohan@hrms.com",  department: "Sales",       position: "Sales Executive",   salary: { basic: 40000, hra: 15000, allowances: 8000,  deductions: 0 }, attendance: "weekdays" },
@@ -107,10 +93,9 @@ const employeeConfigs = [
   { employeeId: "EMP007", firstName: "Meera",  lastName: "Joshi",  email: "meera@hrms.com",  department: "Engineering", position: "QA Engineer",       salary: { basic: 52000, hra: 20000, allowances: 10000, deductions: 0 }, attendance: "weekdays" },
 ];
 
-// -------------------- Attendance for the current month ---------------------
 const now = new Date();
 const year = now.getFullYear();
-const month = now.getMonth(); // 0-based
+const month = now.getMonth();
 const today = now.getDate();
 const daysInMonth = new Date(year, month + 1, 0).getDate();
 const lastDay = Math.min(daysInMonth, 28);
@@ -122,7 +107,6 @@ const buildAttendance = (employeeId, pattern, openToday) => {
     const date = new Date(year, month, day);
     const isWeekend = date.getDay() === 0 || date.getDay() === 6;
 
-    // Leave today's record out so the employee can test the Punch In button.
     if (openToday && day === today) continue;
     if (pattern === "none") continue;
     if (pattern === "weekdays" && isWeekend) continue;
@@ -148,14 +132,12 @@ const employees = {};
 for (const cfg of employeeConfigs) {
   const emp = await createEmployee(cfg);
   employees[cfg.employeeId] = emp;
-  // Weekend employees keep today (overpay volume); others leave today open.
+
   const openToday = cfg.attendance !== "weekends";
   const records = buildAttendance(emp._id, cfg.attendance, openToday);
   if (records.length) await Attendance.insertMany(records);
 }
 
-// ----------------------------- Pending leaves ------------------------------
-// Gives the HR/Admin "Leave Management" screens something to act on.
 await Leave.create({
   employee: employees.EMP003._id,
   leaveType: "casual",
@@ -176,7 +158,6 @@ await Leave.create({
   status: "pending",
 });
 
-// --------------------------------- Summary ---------------------------------
 console.log("\nSeed complete.");
 console.log("Staff accounts:");
 console.log("  Admin -> admin@hrms.com / password123");
@@ -189,5 +170,10 @@ for (const cfg of employeeConfigs) {
   );
 }
 console.log("\n2 pending leave requests created (EMP003, EMP004).");
+
+await setupAutomationEmployees();
+console.log("\nAutomation employees created (used by Cypress):");
+console.log("  AUTO01 -> qa.primary@hrms.com / AUTO01@123");
+console.log("  AUTO02 -> qa.exit@hrms.com    / AUTO02@123");
 
 await mongoose.disconnect();

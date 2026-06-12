@@ -1,28 +1,11 @@
 name: HRMS CI
 
-# Runs on every push to main and on every pull request.
 on:
   push:
     branches: [main]
   pull_request:
 
-# ---------------------------------------------------------------------------
-# NOTE ON EXPECTED FAILURES
-# This project intentionally contains known seeded bugs (e.g. BUG-004, BUG-006,
-# BUG-007). The Newman and Cypress suites include tests that assert the CORRECT
-# behaviour, so those specific tests FAIL today — that is exactly how they
-# document the bugs, and they will start passing once the bugs are fixed.
-#
-# Because of that, the Newman and Cypress steps use `continue-on-error: true`
-# so the pipeline is not turned red purely by known bugs. The "Smoke Tests" job
-# has NO continue-on-error — it is the hard gate and must always pass (it proves
-# the server is up, the database is connected, and the payroll endpoint works).
-# ---------------------------------------------------------------------------
-
 jobs:
-  # =========================================================================
-  # JOB 1 - API tests (Newman / Postman)
-  # =========================================================================
   api-tests:
     name: API Tests
     runs-on: ubuntu-latest
@@ -67,7 +50,6 @@ jobs:
           done
           echo "Backend did not become ready in 30s"; cat backend.log || true; exit 1
 
-      # continue-on-error: the "Known Bugs" tests in the collection fail on purpose.
       - name: Run Newman API tests
         id: newman
         continue-on-error: true
@@ -92,9 +74,6 @@ jobs:
           path: backend.log
           if-no-files-found: ignore
 
-  # =========================================================================
-  # JOB 2 - E2E tests (Cypress)
-  # =========================================================================
   e2e-tests:
     name: E2E Tests
     runs-on: ubuntu-latest
@@ -160,8 +139,6 @@ jobs:
           done
           echo "Frontend did not become ready in 60s"; cat frontend.log || true; exit 1
 
-      # continue-on-error: Cypress bug specs (BUG-001/002/006/007/008) fail on purpose.
-      # video=true is forced here so we always have video artifacts (config defaults to off).
       - name: Run Cypress E2E (headless)
         id: cypress
         continue-on-error: true
@@ -183,9 +160,6 @@ jobs:
           path: cypress/videos
           if-no-files-found: ignore
 
-  # =========================================================================
-  # JOB 3 - Smoke tests (HARD GATE - must always pass)
-  # =========================================================================
   smoke-tests:
     name: Smoke Tests
     runs-on: ubuntu-latest
@@ -227,6 +201,5 @@ jobs:
           done
           echo "Backend did not become ready in 30s"; cat backend.log || true; exit 1
 
-      # No continue-on-error: this is the real pass/fail gate for the pipeline.
       - name: Run smoke tests
         run: node scripts/smoke-test.js
